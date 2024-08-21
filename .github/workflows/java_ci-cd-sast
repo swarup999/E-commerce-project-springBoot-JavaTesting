@@ -1,0 +1,56 @@
+name: CI Pipeline with SAST Check
+
+on:
+  push:
+    branches:
+      - main  # Adjust this to your main branch name
+
+jobs:
+  sast-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'  # Adjust this to your project's Node.js version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Create project zip
+        run: zip -r project.zip . -x "*.git*"
+
+      - name: Perform SAST Scan
+        id: sast
+        run: |
+          RESPONSE=$(curl -X POST \
+            -H "Client-ID: ${{ secrets.SAST_CLIENT_ID }}" \
+            -H "Client-Secret: ${{ secrets.SAST_CLIENT_SECRET }}" \
+            -F "projectZipFile=@project.zip" \
+            -F "applicationId=${{ secrets.INTRUCEPT_APPLICATION_ID }}" \
+            -F "scanName=New Scan Java from API Github actions" \
+            -F "language=java" \
+            https://sast-backend.intruceptlabs.com/api/v1/integrations/performSASTScan)
+          
+          echo "SAST Response: $RESPONSE"
+          
+          CAN_PROCEED=$(echo $RESPONSE | jq -r '.canProceed')
+          echo "canProceed=$CAN_PROCEED" >> $GITHUB_ENV
+
+      - name: Check SAST result
+        if: steps.sast.outputs.canProceed != 'true'
+        run: |
+          echo "SAST scan failed. Deployment cancelled."
+          exit 1
+
+  #    - name: Deploy to Vercel
+  #     if: steps.sast.outputs.canProceed == 'true'
+  #      env:
+  #        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  #     run: |
+  #        npx vercel --token="${{ secrets.VERCEL_TOKEN }}" --prod --confirm

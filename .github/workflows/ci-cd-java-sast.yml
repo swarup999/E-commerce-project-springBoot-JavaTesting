@@ -48,9 +48,9 @@ jobs:
           echo "SAST scan failed. Deployment cancelled."
           exit 1
 
-  #    - name: Deploy to Vercel
-  #     if: steps.sast.outputs.canProceed == 'true'
-  #      env:
-  #        VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-  #     run: |
-  #        npx vercel --token="${{ secrets.VERCEL_TOKEN }}" --prod --confirm
+      - name: Deploy to Vercel
+        if: steps.sast.outputs.canProceed == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          npx vercel --token="${{ secrets.VERCEL_TOKEN }}" --prod --confirm

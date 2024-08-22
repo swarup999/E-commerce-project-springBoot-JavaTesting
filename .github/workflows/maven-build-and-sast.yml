@@ -3,10 +3,10 @@ name: Maven Build and SAST Check
 on:
   push:
     branches:
-      - main
+      - master2
   pull_request:
     branches:
-      - main
+      - master2
 
 jobs:
   build-and-sast:
